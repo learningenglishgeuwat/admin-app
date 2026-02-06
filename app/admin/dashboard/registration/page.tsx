@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'
 import { CheckCircle, Copy, Send, AlertCircle, Phone, Mail, User } from 'lucide-react'
-import { supabaseAdmin } from '@/lib/supabase'
 import { generateReferralCode } from '@/lib/referralCodeGenerator'
 
 interface ParsedData {

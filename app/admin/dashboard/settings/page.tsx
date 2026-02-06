@@ -1,34 +1,21 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Database } from 'lucide-react'
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('system')
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Settings state (Optimized for Supabase Free Tier)
-  const [settings, setSettings] = useState({
-    // Placeholder for future settings
-    placeholder: true
-  })
-
   useEffect(() => {
     const loadSettings = async () => {
-      setLoading(true)
       setError(null)
       // Mock load (simulate async)
       await new Promise(resolve => setTimeout(resolve, 200))
-      setLoading(false)
     }
     loadSettings()
   }, [])
-
-  const handleToggle = (key: keyof typeof settings) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }))
-  }
 
   const handleSave = async () => {
     setSaving(true)

@@ -6,14 +6,12 @@ import {
   getActiveSubscriptionPrice,
   getExtensionRequests,
   getTransactionHistory,
-  getUsers,
-  getWithdrawalRequests
+  getUsers
 } from '@/lib/supabase'
-import type { ExtensionRequest, TransactionHistory, User, WithdrawRequest } from '@/types/database'
+import type { ExtensionRequest, TransactionHistory, User } from '@/types/database'
 
 export default function FinancialAnalyticsPage() {
   const [transactions, setTransactions] = useState<TransactionHistory[]>([])
-  const [withdrawals, setWithdrawals] = useState<WithdrawRequest[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [extensions, setExtensions] = useState<ExtensionRequest[]>([])
   const [subscriptionPrice, setSubscriptionPrice] = useState(0)
@@ -26,20 +24,17 @@ export default function FinancialAnalyticsPage() {
     try {
       const [
         { transactions: txData },
-        { withdrawals: wdData },
         { users: userData },
         { extensions: extData },
         { price }
       ] = await Promise.all([
         getTransactionHistory({ limit: 50 }),
-        getWithdrawalRequests({ limit: 50 }),
         getUsers(),
         getExtensionRequests({ limit: 50 }),
         getActiveSubscriptionPrice()
       ])
 
       setTransactions(txData ?? [])
-      setWithdrawals(wdData ?? [])
       setUsers(userData ?? [])
       setExtensions(extData ?? [])
       setSubscriptionPrice(Number(price?.price_cents ?? 0))

@@ -115,9 +115,9 @@ export default function HistoryPage() {
   }, [fetchHistory, fetchUsers])
 
   // Group transactions by type
-  const getTransactionsByType = (type: string) => {
+  const getTransactionsByType = useCallback((type: string) => {
     return transactions.filter(t => t.type === type)
-  }
+  }, [transactions])
 
   const getFilteredTransactions = useCallback(() => transactions, [transactions])
 
@@ -146,7 +146,7 @@ export default function HistoryPage() {
       }
     }
     return stats
-  }, [transactions])
+  }, [transactions, getTransactionsByType])
 
   const stats = useMemo(() => getTransactionStats(), [getTransactionStats])
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))

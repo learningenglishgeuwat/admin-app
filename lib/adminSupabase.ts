@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { supabaseBrowser } from './supabaseBrowser'
-import type { Database, SubscriptionPrice, Tier, User, WalletTransaction } from '@/types/database'
+import type { Database, User } from '@/types/database'
 
 type Tables = Database['public']['Tables']
 

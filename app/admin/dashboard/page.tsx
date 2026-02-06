@@ -1,12 +1,7 @@
 'use client'
 
-import React from 'react'
 import Link from 'next/link'
-import { 
-  DollarSign, Settings, 
-  BarChart3,
-  Plus, Minimize, History, Users
-} from 'lucide-react'
+import { Plus } from 'lucide-react'
 import ProtectedRoute from '../components/ProtectedRoute'
 
 export default function AdminDashboard() {
