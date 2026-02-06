@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Search, Filter, Download, Calendar, CheckCircle, Clock, X, TrendingUp } from 'lucide-react'
+import { Search, Filter, Download, Calendar, CheckCircle, Clock, X } from 'lucide-react'
 import { getTransactionHistory, getUsers } from '@/lib/supabase'
 import type { TransactionHistory } from '@/types/database'
 import type { User as UserType } from '@/types/database'
@@ -119,18 +119,18 @@ export default function HistoryPage() {
     return transactions.filter(t => t.type === type)
   }
 
-  const getFilteredTransactions = () => transactions
+  const getFilteredTransactions = useCallback(() => transactions, [transactions])
 
-  const getUserInfo = (userId: string) => {
+  const getUserInfo = useCallback((userId: string) => {
     const user = users.find(u => u.id === userId)
     return user ? {
       name: user.fullname,
       email: user.email,
       tier: user.tier
     } : { name: 'Unknown', email: 'Unknown', tier: 'Unknown' }
-  }
+  }, [users])
 
-  const getTransactionStats = () => {
+  const getTransactionStats = useCallback(() => {
     const stats = {
       total: transactions.length,
       completed: transactions.filter(t => t.status === 'completed').length,
@@ -146,9 +146,9 @@ export default function HistoryPage() {
       }
     }
     return stats
-  }
+  }, [transactions])
 
-  const stats = useMemo(() => getTransactionStats(), [transactions])
+  const stats = useMemo(() => getTransactionStats(), [getTransactionStats])
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
   const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1
   const endIndex = Math.min(totalCount, page * pageSize)
@@ -185,7 +185,7 @@ export default function HistoryPage() {
         </tr>
       )
     })
-  ), [transactions, users])
+  ), [getFilteredTransactions, getUserInfo])
 
   if (loading) {
     return (

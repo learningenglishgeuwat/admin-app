@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bell, Search, Filter, Download, Eye, CheckCircle, Clock, X, Users, MessageSquare, Send } from 'lucide-react'
+import { Bell, Search, Filter, Download, Eye, CheckCircle, Clock, X, MessageSquare, Send } from 'lucide-react'
 import { getNotifications, updateNotification, getUsers, createNotification } from '@/lib/supabase'
 import type { Notification, User } from '@/types/database'
 
@@ -116,8 +116,6 @@ export default function BroadcastingPage() {
     setPage(1)
   }, [searchQuery, statusFilter, typeFilter, pageSize])
 
-  const getFilteredNotifications = () => notifications
-
   const handleMarkAsRead = useCallback(async (notificationId: string) => {
     try {
       const { error } = await updateNotification(notificationId, { read_at: new Date().toISOString() })
@@ -222,7 +220,7 @@ export default function BroadcastingPage() {
   const endIndex = Math.min(totalCount, page * pageSize)
 
   const notificationRows = useMemo(() => (
-    getFilteredNotifications().map((notification) => (
+    notifications.map((notification) => (
       <tr key={notification.id} className={!notification.read_at ? 'unread-row' : ''}>
         <td className="table-cell font-mono text-xs">{notification.id}</td>
         <td className="table-cell">

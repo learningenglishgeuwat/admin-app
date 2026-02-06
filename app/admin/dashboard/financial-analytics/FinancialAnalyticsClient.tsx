@@ -55,14 +55,6 @@ export default function FinancialAnalyticsPage() {
     void fetchFinancialData()
   }, [fetchFinancialData])
 
-  const totalWithdrawalAmount = useMemo(() => {
-    return withdrawals.reduce((sum, w) => sum + Number(w.amount || 0), 0)
-  }, [withdrawals])
-
-  const totalTransactionsAmount = useMemo(() => {
-    return transactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
-  }, [transactions])
-
   const monthStart = useMemo(() => {
     const now = new Date()
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0))
@@ -110,14 +102,10 @@ export default function FinancialAnalyticsPage() {
     return { income, expense, cashback, referralBonus, customReward, subscriptionIncome }
   }, [
     transactions,
-    totalWithdrawalAmount,
     subscriptionPrice,
     monthlyNewMembers,
     monthlyApprovedExtensions
   ])
-
-  const totalExtensions = extensions.length
-  const totalUsers = users.length
 
   return (
     <div className="dashboard-page">

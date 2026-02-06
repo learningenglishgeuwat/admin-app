@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { CheckCircle, Gift, PlusCircle, XCircle } from 'lucide-react'
+import { CheckCircle, PlusCircle, XCircle } from 'lucide-react'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { CustomReward, User } from '@/types/database'
 
