@@ -110,6 +110,18 @@ const calculateExtendedExpiration = (currentExpiration: string | null) => {
   return newExpirationDate
 }
 
+const calculateExtendedExpirationByMonths = (
+  currentExpiration: string | null,
+  monthsToAdd: number
+) => {
+  const now = new Date()
+  const baseDate = currentExpiration ? new Date(currentExpiration) : null
+  const startDate = baseDate && baseDate > now ? baseDate : now
+  const newExpirationDate = new Date(startDate)
+  newExpirationDate.setMonth(newExpirationDate.getMonth() + Math.max(1, monthsToAdd))
+  return newExpirationDate
+}
+
 export const adminMarkPaidWithBonus = async (userId: string) => {
   // Load user
   const { data: user, error: userError } = await supabase
@@ -280,5 +292,131 @@ export const adminMarkPaidWithBonus = async (userId: string) => {
     referralBonusAmount,
     cashbackAmount,
     referrerId: referrer?.id ?? null
+  }
+}
+
+export const adminApplySpecialOffer = async (userId: string) => {
+  const { data: user, error: userError } = await supabase
+    .from<'users', Tables['users']>('users')
+    .select('id, role, tier, referred_by, subscription_expires_at')
+    .eq('id', userId)
+    .single()
+
+  if (userError || !user) {
+    return { error: userError ?? new Error('User not found') }
+  }
+
+  if (user.role !== 'member') {
+    return { error: new Error('Special offer hanya untuk member') }
+  }
+
+  const { data: offer, error: offerError } = await supabase
+    .from<'special_offer_settings', Tables['special_offer_settings']>('special_offer_settings')
+    .select(
+      'key, is_active, offer_name, price_amount, duration_months, referral_commission_pct'
+    )
+    .eq('key', 'default')
+    .maybeSingle()
+
+  if (offerError) {
+    return { error: offerError }
+  }
+
+  if (!offer || !offer.is_active) {
+    return { error: new Error('Special offer belum aktif') }
+  }
+
+  const { data: offerTiers, error: tiersError } = await supabase
+    .from<'special_offer_tiers', Tables['special_offer_tiers']>('special_offer_tiers')
+    .select('tier_name')
+    .eq('settings_key', 'default')
+
+  if (tiersError) {
+    return { error: tiersError }
+  }
+
+  const eligibleTiers = new Set((offerTiers ?? []).map((tier) => tier.tier_name))
+  if (!eligibleTiers.has(user.tier)) {
+    return { error: new Error(`Tier ${user.tier} tidak termasuk special offer`) }
+  }
+
+  const durationMonths = Number(offer.duration_months || 6)
+  const referralCommissionPct = Number(offer.referral_commission_pct || 0)
+  const baseAmount = Number(offer.price_amount || 0)
+
+  const newExpirationDate = calculateExtendedExpirationByMonths(
+    user.subscription_expires_at || null,
+    durationMonths
+  )
+  const formattedExpirationDate = newExpirationDate.toISOString().split('T')[0]
+
+  const { data: updatedUser, error: updateError } = await supabase
+    .from<'users', Tables['users']>('users')
+    .update({
+      status: 'active',
+      subscription_expires_at: formattedExpirationDate
+    })
+    .eq('id', userId)
+    .select()
+    .single()
+
+  if (updateError) {
+    return { error: updateError }
+  }
+
+  let referrerId: string | null = null
+  let referralBonusAmount = 0
+
+  if (user.referred_by && baseAmount > 0 && referralCommissionPct > 0) {
+    const { data: referrer, error: refError } = await supabase
+      .from<'users', Tables['users']>('users')
+      .select('id, tier, balance')
+      .eq('id', user.referred_by)
+      .single()
+
+    if (refError) {
+      return { error: refError }
+    }
+
+    referrerId = referrer.id
+    referralBonusAmount = (baseAmount * referralCommissionPct) / 100
+
+    const { error: walletError } = await supabase
+      .from<'wallet_transactions', Tables['wallet_transactions']>('wallet_transactions')
+      .insert([
+        {
+          user_id: referrer.id,
+          type: 'special_offer_referral_bonus',
+          amount: referralBonusAmount,
+          status: 'completed',
+          source_period: new Date().toISOString().split('T')[0],
+          applied_percentage: referralCommissionPct,
+          tier_at_time: referrer.tier
+        }
+      ] as Tables['wallet_transactions']['Insert'][])
+
+    if (walletError) {
+      return { error: walletError }
+    }
+
+    const newReferrerBalance = (
+      Number(referrer.balance || 0) + Number(referralBonusAmount || 0)
+    ).toString()
+
+    const { error: balanceError } = await supabase
+      .from<'users', Tables['users']>('users')
+      .update({ balance: newReferrerBalance })
+      .eq('id', referrer.id)
+
+    if (balanceError) {
+      return { error: balanceError }
+    }
+  }
+
+  return {
+    user: updatedUser as unknown as User,
+    expiration: newExpirationDate.toISOString(),
+    referrerId,
+    referralBonusAmount
   }
 }

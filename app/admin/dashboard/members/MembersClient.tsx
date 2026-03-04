@@ -16,7 +16,15 @@ import {
   Award, 
   CreditCard 
 } from 'lucide-react'
-import { adminGetUsers, adminUpdateUserStatus, adminUpdateUserRole, adminUpdateUserTier, adminUpdateUserStatusAndExpiration, adminMarkPaidWithBonus } from '@/lib/adminSupabase'
+import {
+  adminApplySpecialOffer,
+  adminGetUsers,
+  adminMarkPaidWithBonus,
+  adminUpdateUserRole,
+  adminUpdateUserStatus,
+  adminUpdateUserStatusAndExpiration,
+  adminUpdateUserTier
+} from '@/lib/adminSupabase'
 import type { User } from '@/types/database'
 
 const getStatusColor = (status: string) => {
@@ -103,6 +111,7 @@ export default function MembersPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [specialOfferUserId, setSpecialOfferUserId] = useState<string | null>(null)
 
   const calculateExtendedExpiration = (currentExpiration: string | null) => {
     const now = new Date()
@@ -275,6 +284,67 @@ export default function MembersPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mark user as paid')
+    }
+  }, [selectedUser])
+
+  const handleApplySpecialOffer = useCallback(async (userId: string) => {
+    try {
+      setError(null)
+      setSpecialOfferUserId(userId)
+
+      const { user, expiration, referrerId, referralBonusAmount, error } =
+        await adminApplySpecialOffer(userId)
+
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      if (!user) {
+        setError('User tidak ditemukan')
+        return
+      }
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? { ...u, ...user, status: 'active', subscription_expires_at: expiration }
+            : u
+        )
+      )
+
+      if (selectedUser?.id === userId) {
+        setSelectedUser({
+          ...selectedUser,
+          ...user,
+          status: 'active',
+          subscription_expires_at: expiration
+        })
+      }
+
+      if (referrerId && referralBonusAmount > 0) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === referrerId
+              ? {
+                  ...u,
+                  balance: (Number(u.balance || 0) + referralBonusAmount).toString()
+                }
+              : u
+          )
+        )
+
+        if (selectedUser?.id === referrerId) {
+          setSelectedUser({
+            ...selectedUser,
+            balance: (Number(selectedUser.balance || 0) + referralBonusAmount).toString()
+          })
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to apply special offer')
+    } finally {
+      setSpecialOfferUserId(null)
     }
   }, [selectedUser])
 
@@ -657,10 +727,33 @@ export default function MembersPage() {
               {getComprehensiveActionButtons(user)}
             </div>
           </td>
+          <td className="table-cell">
+            {user.role === 'member' ? (
+              <button
+                type="button"
+                className="action-button action-button-special-offer"
+                title="Apply Special Offer"
+                disabled={specialOfferUserId === user.id}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Apply Special Offer untuk ${user.fullname}? Ini akan mengubah status menjadi active, menambah durasi 6 bulan, dan memberi bonus ke referrer.`
+                    )
+                  ) {
+                    handleApplySpecialOffer(user.id)
+                  }
+                }}
+              >
+                {specialOfferUserId === user.id ? '...' : 'SO'}
+              </button>
+            ) : (
+              <span className="text-gray-500">-</span>
+            )}
+          </td>
         </tr>
       )
     })
-  ), [filteredUsers, getComprehensiveActionButtons])
+  ), [filteredUsers, getComprehensiveActionButtons, handleApplySpecialOffer, specialOfferUserId])
 
   if (loading) {
     return (
@@ -751,12 +844,13 @@ export default function MembersPage() {
               <th>Role</th>
               <th>Joined</th>
               <th>Actions</th>
+              <th>SO</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={9} className="table-cell text-center text-gray-400 py-12">
+                <td colSpan={10} className="table-cell text-center text-gray-400 py-12">
                   No members found.
                 </td>
               </tr>

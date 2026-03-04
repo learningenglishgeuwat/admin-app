@@ -113,6 +113,26 @@ export type AppSettings = {
   updated_at: string
 }
 
+export type SpecialOfferSettings = {
+  key: string
+  offer_name: string
+  price_amount: number
+  currency: string
+  duration_months: number
+  referral_commission_pct: string
+  cashback_commission_pct: string
+  counts_for_tier_progress: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type SpecialOfferTier = {
+  settings_key: string
+  tier_name: 'Rookie' | 'Pro' | 'Legend' | string
+  created_at: string
+}
+
 type TableDef<Row, Relationships extends unknown[] = never[]> = {
   Row: Row
   Insert: Partial<Row>
@@ -126,6 +146,26 @@ export type Database = {
   }
   public: {
     Tables: {
+      special_offer_settings: TableDef<SpecialOfferSettings>
+      special_offer_tiers: TableDef<
+        SpecialOfferTier,
+        [
+          {
+            foreignKeyName: 'special_offer_tiers_settings_key_fkey'
+            columns: ['settings_key']
+            referencedRelation: 'special_offer_settings'
+            referencedColumns: ['key']
+            isOneToOne: false
+          },
+          {
+            foreignKeyName: 'special_offer_tiers_tier_name_fkey'
+            columns: ['tier_name']
+            referencedRelation: 'tiers'
+            referencedColumns: ['tier_name']
+            isOneToOne: false
+          }
+        ]
+      >
       tiers: TableDef<Tier>
       subscription_price: TableDef<SubscriptionPrice>
       users: TableDef<User>

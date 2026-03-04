@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
   { href: '/admin/dashboard/broadcasting', label: 'Broadcasting', icon: Megaphone },
   { href: '/admin/dashboard/history', label: 'History', icon: History },
   { href: '/admin/dashboard/referral-tiers', label: 'Referral Tiers', icon: BarChart3 },
+  { href: '/admin/dashboard/special-offer', label: 'Special Offer', icon: Gift },
   { href: '/admin/dashboard/custom-reward', label: 'Custom Reward', icon: Gift },
   { href: '/admin/dashboard/registration', label: 'Registration', icon: Plus },
   { href: '/admin/dashboard/withdrawal', label: 'Withdrawal', icon: Wallet },
@@ -57,6 +58,7 @@ const pageTitleMap: Array<{ path: string; title: string; exact?: boolean }> = [
   { path: '/admin/dashboard/broadcasting', title: 'Broadcasting' },
   { path: '/admin/dashboard/history', title: 'History' },
   { path: '/admin/dashboard/referral-tiers', title: 'Referral Tiers' },
+  { path: '/admin/dashboard/special-offer', title: 'Special Offer' },
   { path: '/admin/dashboard/custom-reward', title: 'Custom Reward' },
   { path: '/admin/dashboard/registration', title: 'Registration' },
   { path: '/admin/dashboard/withdrawal', title: 'Withdrawal' },
@@ -89,6 +91,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? ''
   const { user, loading, signOut, refreshAuth } = useAdminAuth()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+  const MOBILE_SIDEBAR_BREAKPOINT = 480
 
   const pageTitle = useMemo(() => {
     const match = pageTitleMap.find((item) => {
@@ -140,6 +144,25 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [pathname])
 
+  useEffect(() => {
+    const checkViewport = () => {
+      const mobile = window.innerWidth <= MOBILE_SIDEBAR_BREAKPOINT
+      setIsMobile((prev) => {
+        if (prev !== mobile) {
+          setSidebarOpen(!mobile)
+        }
+        return mobile
+      })
+    }
+
+    checkViewport()
+    window.addEventListener('resize', checkViewport)
+
+    return () => {
+      window.removeEventListener('resize', checkViewport)
+    }
+  }, [])
+
   const handleLogout = async () => {
     await signOut()
     router.replace('/admin/login')
@@ -168,18 +191,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="dashboard-orb dashboard-orb-pink" />
 
       <div className="dashboard-layout">
+        {isMobile && sidebarOpen && (
+          <button
+            type="button"
+            className="sidebar-backdrop"
+            aria-label="Close sidebar"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         <aside className={`dashboard-sidebar ${sidebarOpen ? '' : 'sidebar-closed'}`}>
           <div className="sidebar-header">
             <div className="sidebar-logo">
-              <button
-                className="sidebar-icon-button"
-                onClick={() => setSidebarOpen((open) => !open)}
-                aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-                type="button"
-              >
-                <Menu className="sidebar-menu-icon" />
-              </button>
-              {sidebarOpen && <span>GEUWAT ADMIN</span>}
+              {!isMobile && (
+                <button
+                  className="sidebar-icon-button"
+                  onClick={() => setSidebarOpen((open) => !open)}
+                  aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+                  type="button"
+                >
+                  <Menu className="sidebar-menu-icon" />
+                </button>
+              )}
+              {(!isMobile ? sidebarOpen : true) && <span>GEUWAT ADMIN</span>}
             </div>
           </div>
           <nav className="sidebar-nav">
@@ -194,6 +228,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     <Link
                       href={item.href}
                       className={`sidebar-menu-link ${isActive ? 'active' : ''}`}
+                      onClick={() => {
+                        if (isMobile) setSidebarOpen(false)
+                      }}
                     >
                       <Icon className="sidebar-menu-icon" />
                       {sidebarOpen && <span>{item.label}</span>}
@@ -209,6 +246,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <header className="dashboard-header">
             <div className="header-content">
               <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="mobile-sidebar-toggle"
+                  onClick={() => setSidebarOpen((open) => !open)}
+                  aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+                >
+                  <Menu className="sidebar-menu-icon" />
+                </button>
                 <h1 className="header-title">{pageTitle}</h1>
               </div>
               <div className="header-actions">
